@@ -4,76 +4,91 @@ $(document).ready(function(){
 		on : false,
 
 		init : function(){
+			$('#end').hide();
+			Game.on = false;
 			Screen.reset();
+			Player.reset();
+			Obstacle.destroy();
+			Screen.hidePoints();
 		},
 
 		start : function(){
+			clearInterval(Screen.int);
 			Game.on = true;
-			Player.animate();
-			Player.run();
-			Player.checkCollision();
-			Screen.reset();
-			Screen.scroll();
 			Obstacle.generate();
+			Player.start();
+			Screen.start();
+			Screen.showPoints();
 		},
 
 		over : function(type){
-			$('body').stop();
-
+			Game.on = false;
 			if(type == 'fail'){
-				Game.on = false;
+				$('body').stop();
 				Player.runner.stop();
 				Player.runner.css('background', "Url('imgs/runner-fail.svg')");
-				setTimeout(function(){
-					$('#end').removeClass('hide');
-					$('#end .success').hide();
-				}, 1000);
+				$('#end').fadeIn('slow');
+				$('#end .success').hide();
 			}else{
-				Player.runner.animate({
-					left: '89%',
-					bottom: '+=130px'
-				}, {
-					duration: 2000,
-					specialEasing: {
-						left : 'linear',
-						bottom : 'swing'
-					}
-				});
+				$('#end').fadeIn('fast');
+				$('#end .error').hide();
 			}
 		}
-
-
 	}
 
 	var Player = {
+		animacao : '',
 		runner : $('#runner'),
 		bgOffset : 0,
 		lane : 1,
 		isJumping : false,
-		animate : function(){
+		start : function() {
+			Player.reset();
+			Player.animate();
+			Player.run();
+			Player.checkCollision();
+		},
+
+		reset : function() {
+			Player.runner.css({
+				position: 'absolute',
+				bottom: '100px',
+				left: '0px',
+				zIndex: '80',
+				transform: 'scale(1)',
+				background: "url('imgs/runner-tileset.png')"
+			});
+			Player.bgOffset = 0;
+			Player.lane = 1;
+			Player.isJumping = false;
+		},
+
+		animate : function() {
 			if(!Player.isJumping && Game.on){
 				Player.runner.css('background-position', Player.bgOffset+'px');
 				Player.bgOffset += 125;
-				var animacao = setTimeout(Player.animate, 120);
+				Player.animacao = setTimeout(Player.animate, 120);
 			}else{
-				clearTimeout(animacao);
+				console.log('asd');
+				clearTimeout(Player.animacao);
 			}
 		},
 
-		run : function(){
+		run : function() {
 			Player.runner.animate({
-				left : '85%'
+				left : '83%'
 			}, {
 				duration : 12000, 
 				queue:false, 
 				easing : "linear",
 				complete : function(){
-					Game.over('success');
+					Player.animateToPyre();
 				}
 			});
 		},
 
-		moveUp : function(){
+		moveUp : function() {
+
 			if(Player.lane == 1){
 
 				Player.runner.animate({
@@ -88,7 +103,7 @@ $(document).ready(function(){
 
 
 				Player.lane--;
-			}else if(Player.lane == 2){
+			}else if(Player.lane == 2) {
 				Player.runner.animate({
 					bottom : '+=30'
 				}, {duration : 10, queue:false});
@@ -99,7 +114,7 @@ $(document).ready(function(){
 			
 		},
 
-		moveDown : function(){
+		moveDown : function() {
 			if(Player.lane == 1){
 				Player.runner.animate({
 					bottom : '-=30'
@@ -119,7 +134,7 @@ $(document).ready(function(){
 			
 		},
 
-		jump : function(){
+		jump : function() {
 			if(!Player.isJumping){
 				Player.isJumping = true;
 				Player.runner.css('background-position', '0px');
@@ -147,7 +162,7 @@ $(document).ready(function(){
 			
 		},
 
-		checkCollision : function(){
+		checkCollision : function() {
 			$.each(Obstacle.obstacleArr, function(index, value){
 				var plLeft = parseFloat(Player.runner.css('left'));
 				if(Player.lane == value.runway){
@@ -160,7 +175,39 @@ $(document).ready(function(){
 				}
 			});
 			check = setTimeout(Player.checkCollision, 10);
-		}
+		},
+
+		lightPyre : function() {
+			Player.runner.css({
+				background : "Url('imgs/runner-success.svg')"
+			});
+		},
+
+		animateToPyre : function() {
+			Player.runner.animate({
+				left: '87%'
+			},{
+				duration: 1200,
+				easing: 'linear'
+			}).animate({
+				left: '91%'
+			},{
+				duration: 600,
+				easing: 'linear',
+				complete : function(){
+					Player.runner.stop();
+					Player.lightPyre();
+					Screen.lightPyre();
+					Game.over('success');
+				}
+			}).animate({
+				bottom: '+=140',
+			},{
+				duration: 1500,
+				easing: 'swing',
+				queue: false
+			});
+	}
 
 	}
 
@@ -170,6 +217,11 @@ $(document).ready(function(){
 		minPos : 500,
 		maxPos: 4000,
 		obstacleArr : [],
+		reset : function(){
+			Obstacle.minPos = 500;
+			Obstacle.obstacleArr = [];
+		},
+
 		generate : function(){
 			for(var i = 0 ; i < Obstacle.count ; i++){
 				var runway = (Math.floor(Math.random() * Obstacle.lanes));
@@ -183,13 +235,28 @@ $(document).ready(function(){
 					Obstacle.minPos += 500;
 				}
 			}
+			console.log('objects done');
 			
+		},
+
+		destroy : function(){
+			$('.obstacle').remove();
+			Obstacle.reset();
 		}
 	}
 
 	var Screen = {
+		int : '',
+		start : function(){
+			$('body').stop().animate({
+				scrollLeft : '0'
+			}, {duration : 1, queue:false, complete : function(){
+				Screen.scroll();
+			}});
+		},
+
 		reset : function(){
-			$('body').animate({
+			$('body').stop().animate({
 				scrollLeft : '0'
 			}, {duration : 1, queue:false});
 		},
@@ -197,28 +264,77 @@ $(document).ready(function(){
 		scroll : function(){
 			$('body').animate({
 				scrollLeft : '4000'
-			}, {duration : 11000, queue:false, easing : "linear"});
+			}, {duration : 11000, queue:true, easing : "linear"});
+		},
+
+		lightPyre : function(){
+			$('#pyreFire').animate({
+				opacity: '1'
+			}, {
+				duration : 200,
+				complete : function(){
+					return true;
+				}
+			});
+		},
+
+		showPoints : function(){
+			if(Game.on){
+				$('#points section').each(function(i, current){
+					Screen.int = setInterval(function(){
+						$(current).stop().animate({
+							opacity: '1'
+						},500);
+						$('#'+$(current).attr('id')+'Panel').stop().animate({
+							opacity: '1'
+						},500);
+					}, ($(current).data('step') * 1800));
+				});
+			}else{
+				clearInterval(Screen.int);
+			}
+			
+		},
+
+		hidePoints : function(){
+			$('#points section').each(function(i, current){
+				clearInterval(Screen.int);
+				$(current).css('opacity', '0');
+				$('#'+$(current).attr('id')+'Panel').css('opacity', '0');
+			});
 		}
+
+
 	}
 
-	Screen.reset();
+	Game.init();
 
 	$('#startButton').on('click', Game.start);
 
 	$(window).on('keydown', function(e){
-		switch(e.keyCode){
-			case 38:
-				if(!Player.isJumping)
-					Player.moveUp();
-				break;
-			case 40:
-				if(!Player.isJumping)
-					Player.moveDown();
-				break;
-			case 32:
-				Player.jump();
-				break;
+		if(Game.on){
+			switch(e.keyCode){
+				case 38:
+					if(!Player.isJumping)
+						Player.moveUp();
+					break;
+				case 40:
+					if(!Player.isJumping)
+						Player.moveDown();
+					break;
+				case 32:
+					Player.jump();
+					break;
+			}
 		}
+	});
+
+	
+
+	$('#restartButton').on('click', function(e){
+		Game.init();
+		Game.start();
+		e.preventDefault();
 	});
 
 

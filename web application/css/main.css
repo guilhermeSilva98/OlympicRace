@@ -185,3 +185,19 @@ h3{
 	background: url('../imgs/runner-tileset.png');
 	transform: scale(1);
 }
+
+#pyreFire{
+	position: absolute;
+	top: 0;
+	left: 0;
+	opacity: 0;
+}
+
+#points section{
+	opacity: 0;
+	transition: 0.2s;
+}
+
+.panel{
+	opacity: 0;
+}
